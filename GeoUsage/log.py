@@ -38,7 +38,8 @@ LOGGER = logging.getLogger(__name__)
 
 SERVICE_TYPES = {
     'OGC:WMS': 'WMS',
-    'OGC:WFS': 'WFS'
+    'OGC:WFS': 'WFS',
+    'OGC:WPS': 'WPS'
 }
 
 
@@ -229,7 +230,15 @@ class WMSLogRecord(OWSLogRecord):
                               service_type='OGC:WMS')
 
     def __repr__(self):
-        return '<OWSLogRecord> {}'.format(self.request)
+        return '<WMSLogRecord> {}'.format(self.request)
+
+
+def get_record(line, endpoint=None, service_type=None):
+    if service_type == 'OGC:WMS':
+        r = WMSLogRecord(line, endpoint=endpoint)
+    else:
+        r = OWSLogRecord(line, endpoint=endpoint, service_type=service_type)
+    return r
 
 
 class Analyzer:
@@ -498,7 +507,7 @@ def log():
 @click.option('--resolve-ips', '-r', 'resolve_ips', default=False,
               is_flag=True, help='resolve IP addresses')
 @click.option('--service-type', '-s', 'service_type',
-              type=click.Choice(['OGC:WMS', 'OGC:WCS']), default='OGC:WMS',
+              type=click.Choice(['OGC:WMS', 'OGC:WCS', 'OGC:WPS']), default='OGC:WMS',
               help='service type')
 @click.option('--time', '-t', 'time_',
               help='time filter (ISO8601 instance or start/end)')
@@ -531,7 +540,7 @@ def analyze(ctx, logfile, endpoint, verbosity, top, resolve_ips,
     with open_(logfile, 'rt') as ff:
         for line in ff.readlines():
             try:
-                r = WMSLogRecord(line, endpoint=endpoint)
+                r = get_record(line, endpoint=endpoint, service_type=service_type)
                 if time_ is not None:
                     if test_time(r.datetime, time__):
                         LOGGER.debug('Adding line based on time filter')
