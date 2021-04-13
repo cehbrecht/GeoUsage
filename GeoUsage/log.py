@@ -233,9 +233,23 @@ class WMSLogRecord(OWSLogRecord):
         return '<WMSLogRecord> {}'.format(self.request)
 
 
+class WPSLogRecord(OWSLogRecord):
+    """OGC:WPS Log Record"""
+    def __init__(self, line, endpoint=None):
+        OWSLogRecord.__init__(self, line, endpoint=endpoint,
+                              service_type='OGC:WPS')
+        if self.request_type == 'POST':
+            self.ows_request = 'Execute'
+
+    def __repr__(self):
+        return '<WPSLogRecord> {}'.format(self.request)
+
+
 def get_record(line, endpoint=None, service_type=None):
     if service_type == 'OGC:WMS':
         r = WMSLogRecord(line, endpoint=endpoint)
+    if service_type == 'OGC:WPS':
+        r = WPSLogRecord(line, endpoint=endpoint)
     else:
         r = OWSLogRecord(line, endpoint=endpoint, service_type=service_type)
     return r
