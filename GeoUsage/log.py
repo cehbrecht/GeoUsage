@@ -194,6 +194,7 @@ class OWSLogRecord(LogRecord):
         self.service = parsed_request['service']
         self.version = parsed_request['version']
         self.ows_request = parsed_request['ows_request']
+        self.identifier = parsed_request['identifier']
         self.styles = parsed_request['styles']
         self.crs = parsed_request['crs']
         self.format = parsed_request['format']
@@ -238,6 +239,10 @@ class WPSLogRecord(OWSLogRecord):
     def __init__(self, line, endpoint=None):
         OWSLogRecord.__init__(self, line, endpoint=endpoint,
                               service_type='OGC:WPS')
+        self.resource = 'identifier'
+        """WPS parameter to identify process"""
+
+        # Workaround: count POST requests as "Execute"
         if self.request_type == 'POST':
             self.ows_request = 'Execute'
 
@@ -449,7 +454,8 @@ def parse_request(url_request):
         'crs': None,
         'ows_resource': None,
         'ows_request': None,
-        'format': None
+        'format': None,
+        'identifier': None,
     }
     _kvps = ''
 
@@ -485,6 +491,8 @@ def parse_request(url_request):
         results['format'] = results['kvp']['format']
     if 'outputformat' in results['kvp']:  # WFS format
         results['format'] = results['kvp']['outputformat']
+    if 'identifier' in results['kvp']:  # WPS identifier
+        results['identifier'] = results['kvp']['identifier']
 
     # OWS resource from multiple request types
     # [WMS] layer, layers; [WFS] typename; [WCS] coverageid
