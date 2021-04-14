@@ -522,10 +522,10 @@ def log():
 
 @click.command()
 @click.pass_context
+@click.argument('logfile',
+                type=click.Path(exists=True, resolve_path=True, dir_okay=False),
+                nargs=-1)
 @click.option('--endpoint', '-e', help='OWS endpoint (base URL)')
-@click.option('--logfile', '-l',
-              type=click.Path(exists=True, resolve_path=True),
-              help='logfile to parse')
 @click.option('--resolve-ips', '-r', 'resolve_ips', default=False,
               is_flag=True, help='resolve IP addresses')
 @click.option('--service-type', '-s', 'service_type',
@@ -555,24 +555,25 @@ def analyze(ctx, logfile, endpoint, verbosity, top, resolve_ips,
     if time_ is not None:
         time__ = parse_iso8601(time_)
 
-    if logfile.endswith('gz'):
-        open_ = gzip.open
-    else:
-        open_ = open
-    with open_(logfile, 'rt') as ff:
-        for line in ff.readlines():
-            try:
-                r = get_record(line, endpoint=endpoint, service_type=service_type)
-                if time_ is not None:
-                    if test_time(r.datetime, time__):
-                        LOGGER.debug('Adding line based on time filter')
-                        records.append(r)
+    for logfile_ in logfile:
+        if logfile_.endswith('gz'):
+            open_ = gzip.open
+        else:
+            open_ = open
+        with open_(logfile_, 'rt') as ff:
+            for line in ff.readlines():
+                try:
+                    r = get_record(line, endpoint=endpoint, service_type=service_type)
+                    if time_ is not None:
+                        if test_time(r.datetime, time__):
+                            LOGGER.debug('Adding line based on time filter')
+                            records.append(r)
+                        else:
+                            LOGGER.debug('Skipping line based on time filter')
                     else:
-                        LOGGER.debug('Skipping line based on time filter')
-                else:
-                    records.append(r)
-            except NotFoundError:
-                pass
+                        records.append(r)
+                except NotFoundError:
+                    pass
 
     if len(records) == 0:
         raise click.ClickException('No records to analyze')
@@ -597,7 +598,7 @@ def analyze(ctx, logfile, endpoint, verbosity, top, resolve_ips,
 
     click.echo('\nGeoUsage Analysis')
     click.echo('=================\n')
-    click.echo('Logfile: {}\n'.format(logfile))
+    click.echo('Logfile: {}\n'.format(', '.join(logfile)))
     click.echo('Period: {} - {}\n'.format(a.start.isoformat(),
                                           a.end.isoformat()))
     click.echo('Total bytes transferred: {}\n'.format(a.total_size))
